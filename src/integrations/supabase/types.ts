@@ -14,7 +14,152 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      attendance: {
+        Row: {
+          amount: number
+          created_at: string
+          date: string
+          id: string
+          partner_id: string
+          rider_id: string
+          status: string
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          date?: string
+          id?: string
+          partner_id: string
+          rider_id: string
+          status?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          date?: string
+          id?: string
+          partner_id?: string
+          rider_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attendance_partner_id_fkey"
+            columns: ["partner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "attendance_rider_id_fkey"
+            columns: ["rider_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          role: Database["public"]["Enums"]["user_role"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          role: Database["public"]["Enums"]["user_role"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          role?: Database["public"]["Enums"]["user_role"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      requests: {
+        Row: {
+          created_at: string
+          date: string
+          id: string
+          partner_id: string
+          rider_id: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          date?: string
+          id?: string
+          partner_id: string
+          rider_id: string
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          id?: string
+          partner_id?: string
+          rider_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "requests_partner_id_fkey"
+            columns: ["partner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "requests_rider_id_fkey"
+            columns: ["rider_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      settings: {
+        Row: {
+          created_at: string
+          daily_petrol_cost: number
+          id: string
+          rider_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          daily_petrol_cost?: number
+          id?: string
+          rider_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          daily_petrol_cost?: number
+          id?: string
+          rider_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "settings_rider_id_fkey"
+            columns: ["rider_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +168,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      user_role: "rider" | "partner"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +295,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      user_role: ["rider", "partner"],
+    },
   },
 } as const
