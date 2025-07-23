@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/components/auth/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import AnalyticsChart from './AnalyticsChart';
 import { 
   CheckCircle, 
   Calendar, 
@@ -253,6 +254,9 @@ const PartnerDashboard = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Analytics Chart */}
+      <AnalyticsChart />
 
       {/* Monthly Summary Card */}
       <Card className="border-0 shadow-lg">

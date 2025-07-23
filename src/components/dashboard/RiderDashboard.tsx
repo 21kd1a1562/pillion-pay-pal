@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { useAuth } from '@/components/auth/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import AnalyticsChart from './AnalyticsChart';
 import { 
   DollarSign, 
   Calendar, 
@@ -107,14 +108,32 @@ const RiderDashboard = () => {
 
     setLoading(true);
     try {
-      const { error } = await supabase
+      // First check if settings already exist
+      const { data: existingSettings } = await supabase
         .from('settings')
-        .upsert({
-          rider_id: user.id,
-          daily_petrol_cost: parseFloat(petrolCost)
-        });
+        .select('id')
+        .eq('rider_id', user.id)
+        .maybeSingle();
 
-      if (error) throw error;
+      if (existingSettings) {
+        // Update existing record
+        const { error } = await supabase
+          .from('settings')
+          .update({ daily_petrol_cost: parseFloat(petrolCost) })
+          .eq('rider_id', user.id);
+        
+        if (error) throw error;
+      } else {
+        // Insert new record
+        const { error } = await supabase
+          .from('settings')
+          .insert({
+            rider_id: user.id,
+            daily_petrol_cost: parseFloat(petrolCost)
+          });
+        
+        if (error) throw error;
+      }
 
       toast({
         title: "Settings saved",
@@ -278,26 +297,32 @@ const RiderDashboard = () => {
         </Card>
       </div>
 
+      {/* Analytics Chart */}
+      <AnalyticsChart />
+
       {/* Action Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Card className="border-0 shadow-lg">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Bell className="h-5 w-5" />
-              Partner Status
+              Send Request
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {stats.todayStatus === 'pending' && stats.partnerInfo ? (
+            {stats.todayStatus !== 'completed' && stats.partnerInfo ? (
               <div>
                 <p className="text-sm text-muted-foreground mb-2">
-                  Partner hasn't marked attendance for today
+                  {stats.todayStatus === 'pending' ? 
+                    "Partner hasn't marked attendance for today" :
+                    "Send a request to your partner to mark attendance"
+                  }
                 </p>
                 <Button 
                   onClick={sendRequest}
                   className="w-full bg-gradient-to-r from-warning to-accent hover:from-warning/90 hover:to-accent/90"
                 >
-                  Send Reminder
+                  Send Request
                 </Button>
               </div>
             ) : stats.todayStatus === 'completed' ? (
@@ -306,7 +331,7 @@ const RiderDashboard = () => {
               </div>
             ) : (
               <div className="text-center p-4">
-                <p className="text-muted-foreground">No travel planned for today</p>
+                <p className="text-muted-foreground">No partner found</p>
               </div>
             )}
           </CardContent>
