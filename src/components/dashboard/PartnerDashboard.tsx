@@ -63,8 +63,8 @@ const PartnerDashboard = () => {
       let rider = null;
 
       // If partner has a paired rider, fetch that rider's info
-      if (partnerProfile?.paired_rider_id) {
-        pairedRiderId = partnerProfile.paired_rider_id;
+      if ((partnerProfile as any)?.paired_rider_id) {
+        pairedRiderId = (partnerProfile as any).paired_rider_id;
         const { data: pairedRider } = await supabase
           .from('profiles')
           .select('*')
@@ -208,7 +208,7 @@ const PartnerDashboard = () => {
       // Update partner's profile to include paired rider
       const { error } = await supabase
         .from('profiles')
-        .update({ paired_rider_id: riderProfile.user_id })
+        .update({ paired_rider_id: riderProfile.user_id } as any)
         .eq('user_id', user.id);
 
       if (error) throw error;
