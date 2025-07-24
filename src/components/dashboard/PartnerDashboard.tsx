@@ -11,8 +11,12 @@ import {
   DollarSign, 
   Bell,
   TrendingDown,
-  Clock
+  Clock,
+  UserPlus,
+  Link
 } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 interface PartnerStats {
   monthlySpent: number;
@@ -21,6 +25,7 @@ interface PartnerStats {
   todayMarked: boolean;
   pendingRequests: number;
   riderInfo: any;
+  pairedRiderId: string | null;
 }
 
 const PartnerDashboard = () => {
@@ -31,9 +36,11 @@ const PartnerDashboard = () => {
     daysThisMonth: 0,
     todayMarked: false,
     pendingRequests: 0,
-    riderInfo: null
+    riderInfo: null,
+    pairedRiderId: null
   });
   const [loading, setLoading] = useState(false);
+  const [pairingCode, setPairingCode] = useState('');
 
   useEffect(() => {
     if (user) {
@@ -45,27 +52,42 @@ const PartnerDashboard = () => {
     if (!user) return;
 
     try {
-      // Fetch attendance records
+      // Get current partner's profile to find paired rider
+      const { data: partnerProfile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
+
+      let pairedRiderId = null;
+      let rider = null;
+
+      // If partner has a paired rider, fetch that rider's info
+      if (partnerProfile?.paired_rider_id) {
+        pairedRiderId = partnerProfile.paired_rider_id;
+        const { data: pairedRider } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('user_id', pairedRiderId)
+          .single();
+        rider = pairedRider;
+      }
+
+      // Fetch attendance records (only if paired)
       const { data: attendance } = await supabase
         .from('attendance')
         .select('*')
-        .eq('partner_id', user.id);
+        .eq('partner_id', user.id)
+        .eq('rider_id', pairedRiderId || 'no-rider');
 
-      // Fetch pending requests
+      // Fetch pending requests (only if paired)
       const today = new Date().toISOString().split('T')[0];
       const { data: requests } = await supabase
         .from('requests')
         .select('*')
         .eq('partner_id', user.id)
+        .eq('rider_id', pairedRiderId || 'no-rider')
         .eq('status', 'pending');
-
-      // Find rider
-      const { data: rider } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('role', 'rider')
-        .limit(1)
-        .maybeSingle();
 
       // Calculate stats
       const currentMonth = new Date().getMonth();
@@ -90,7 +112,8 @@ const PartnerDashboard = () => {
         daysThisMonth,
         todayMarked,
         pendingRequests: requests?.length || 0,
-        riderInfo: rider
+        riderInfo: rider,
+        pairedRiderId
       });
 
     } catch (error) {
@@ -159,10 +182,112 @@ const PartnerDashboard = () => {
     setLoading(false);
   };
 
+  const pairWithRider = async () => {
+    if (!user || !pairingCode.trim()) return;
+
+    setLoading(true);
+    try {
+      // Find rider by pairing code
+      const { data: riderProfile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('pairing_code', pairingCode.trim().toUpperCase())
+        .eq('role', 'rider')
+        .single();
+
+      if (!riderProfile) {
+        toast({
+          title: "Invalid Code",
+          description: "No rider found with this pairing code.",
+          variant: "destructive",
+        });
+        setLoading(false);
+        return;
+      }
+
+      // Update partner's profile to include paired rider
+      const { error } = await supabase
+        .from('profiles')
+        .update({ paired_rider_id: riderProfile.user_id })
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      await fetchDashboardData();
+      setPairingCode('');
+
+      toast({
+        title: "Successfully Paired!",
+        description: `You are now paired with ${riderProfile.email}`,
+      });
+
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+    setLoading(false);
+  };
+
   return (
     <div className="space-y-6">
-      {/* Today's Action Card */}
-      <Card className="border-0 shadow-lg bg-gradient-to-r from-accent/10 to-primary/10">
+      {/* Pairing and Attendance Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Pairing Card */}
+        {!stats.pairedRiderId ? (
+          <Card className="border-0 shadow-lg bg-gradient-to-r from-warning/10 to-accent/10">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <UserPlus className="h-5 w-5" />
+                Pair with Rider
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <Label htmlFor="pairing-code">Rider's Pairing Code</Label>
+                <Input
+                  id="pairing-code"
+                  placeholder="Enter 6-digit code"
+                  value={pairingCode}
+                  onChange={(e) => setPairingCode(e.target.value.toUpperCase())}
+                  maxLength={6}
+                />
+              </div>
+              <Button 
+                onClick={pairWithRider} 
+                disabled={loading || !pairingCode.trim()}
+                className="w-full bg-gradient-to-r from-warning to-accent hover:from-warning/90 hover:to-accent/90"
+              >
+                {loading ? 'Pairing...' : 'Pair Account'}
+              </Button>
+              <p className="text-xs text-muted-foreground">
+                Ask your rider for their pairing code to connect your accounts
+              </p>
+            </CardContent>
+          </Card>
+        ) : (
+          <Card className="border-0 shadow-lg bg-gradient-to-r from-success/10 to-primary/10">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Link className="h-5 w-5" />
+                Paired Account
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="text-center">
+                <p className="text-success font-medium">✓ Successfully paired!</p>
+                <p className="text-sm text-muted-foreground">
+                  Paired with: {stats.riderInfo?.email}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Today's Action Card */}
+        <Card className="border-0 shadow-lg bg-gradient-to-r from-accent/10 to-primary/10">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <CheckCircle className="h-5 w-5" />
@@ -170,7 +295,11 @@ const PartnerDashboard = () => {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {!stats.todayMarked ? (
+          {!stats.pairedRiderId ? (
+            <div className="text-center p-4">
+              <p className="text-muted-foreground">Pair with a rider first to mark attendance</p>
+            </div>
+          ) : !stats.todayMarked ? (
             <div>
               <p className="text-sm text-muted-foreground mb-4">
                 {stats.pendingRequests > 0 ? 
@@ -179,7 +308,7 @@ const PartnerDashboard = () => {
               </p>
               <Button 
                 onClick={markAttendance} 
-                disabled={loading}
+                disabled={loading || !stats.riderInfo}
                 className="w-full bg-gradient-to-r from-accent to-warning hover:from-accent/90 hover:to-warning/90"
               >
                 {loading ? 'Marking...' : 'Mark Attendance'}
@@ -199,6 +328,7 @@ const PartnerDashboard = () => {
           )}
         </CardContent>
       </Card>
+      </div>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">

@@ -64,6 +64,7 @@ export type Database = {
           created_at: string
           email: string
           id: string
+          pairing_code: string | null
           role: Database["public"]["Enums"]["user_role"]
           updated_at: string
           user_id: string
@@ -72,6 +73,7 @@ export type Database = {
           created_at?: string
           email: string
           id?: string
+          pairing_code?: string | null
           role: Database["public"]["Enums"]["user_role"]
           updated_at?: string
           user_id: string
@@ -80,6 +82,7 @@ export type Database = {
           created_at?: string
           email?: string
           id?: string
+          pairing_code?: string | null
           role?: Database["public"]["Enums"]["user_role"]
           updated_at?: string
           user_id?: string
@@ -165,7 +168,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      generate_pairing_code: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
     }
     Enums: {
       user_role: "rider" | "partner"

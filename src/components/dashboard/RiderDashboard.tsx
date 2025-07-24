@@ -14,7 +14,9 @@ import {
   Bell, 
   RotateCcw, 
   Users,
-  MapPin 
+  MapPin,
+  Copy,
+  QrCode 
 } from 'lucide-react';
 
 interface DashboardStats {
@@ -23,6 +25,7 @@ interface DashboardStats {
   daysThisMonth: number;
   todayStatus: 'pending' | 'completed' | 'none';
   partnerInfo: any;
+  pairingCode: string;
 }
 
 const RiderDashboard = () => {
@@ -33,7 +36,8 @@ const RiderDashboard = () => {
     monthlyEarned: 0,
     daysThisMonth: 0,
     todayStatus: 'none',
-    partnerInfo: null
+    partnerInfo: null,
+    pairingCode: ''
   });
   const [loading, setLoading] = useState(false);
 
@@ -47,6 +51,13 @@ const RiderDashboard = () => {
     if (!user) return;
 
     try {
+      // Fetch current user profile for pairing code
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
+
       // Fetch settings
       const { data: settings } = await supabase
         .from('settings')
@@ -95,7 +106,8 @@ const RiderDashboard = () => {
         monthlyEarned,
         daysThisMonth,
         todayStatus,
-        partnerInfo: partner
+        partnerInfo: partner,
+        pairingCode: profile?.pairing_code || ''
       });
 
     } catch (error) {
@@ -236,6 +248,43 @@ const RiderDashboard = () => {
                 {loading ? 'Saving...' : 'Save'}
               </Button>
             </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Pairing Code Card */}
+      <Card className="border-0 shadow-lg bg-gradient-to-r from-accent/10 to-primary/10">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <QrCode className="h-5 w-5" />
+            Your Pairing Code
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="text-center">
+            <p className="text-sm text-muted-foreground mb-2">
+              Share this code with your partner to pair your accounts
+            </p>
+            <div className="bg-muted/50 rounded-lg p-4 border-2 border-dashed">
+              <p className="text-3xl font-bold tracking-wider text-primary">
+                {stats.pairingCode}
+              </p>
+            </div>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="mt-2"
+              onClick={() => {
+                navigator.clipboard.writeText(stats.pairingCode);
+                toast({
+                  title: "Copied!",
+                  description: "Pairing code copied to clipboard",
+                });
+              }}
+            >
+              <Copy className="h-4 w-4 mr-2" />
+              Copy Code
+            </Button>
           </div>
         </CardContent>
       </Card>
