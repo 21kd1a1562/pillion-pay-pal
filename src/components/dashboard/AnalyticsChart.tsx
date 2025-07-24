@@ -148,7 +148,7 @@ const AnalyticsChart = () => {
   const CustomBar = (props: any) => {
     const { fill, ...rest } = props;
     const color = getBarColor(props.payload?.status);
-    return <Bar {...rest} fill={color} />;
+    return <rect {...rest} fill={color} />;
   };
 
   return (
