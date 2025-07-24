@@ -64,6 +64,7 @@ export type Database = {
           created_at: string
           email: string
           id: string
+          paired_rider_id: string | null
           pairing_code: string | null
           role: Database["public"]["Enums"]["user_role"]
           updated_at: string
@@ -73,6 +74,7 @@ export type Database = {
           created_at?: string
           email: string
           id?: string
+          paired_rider_id?: string | null
           pairing_code?: string | null
           role: Database["public"]["Enums"]["user_role"]
           updated_at?: string
@@ -82,6 +84,7 @@ export type Database = {
           created_at?: string
           email?: string
           id?: string
+          paired_rider_id?: string | null
           pairing_code?: string | null
           role?: Database["public"]["Enums"]["user_role"]
           updated_at?: string
