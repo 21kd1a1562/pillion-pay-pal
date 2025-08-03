@@ -188,12 +188,23 @@ const PartnerDashboard = () => {
     setLoading(true);
     try {
       // Find rider by pairing code
-      const { data: riderProfile } = await supabase
+      const { data: riderProfile, error: searchError } = await supabase
         .from('profiles')
         .select('*')
         .eq('pairing_code', pairingCode.trim().toUpperCase())
         .eq('role', 'rider')
-        .single();
+        .maybeSingle();
+
+      if (searchError) {
+        console.error('Search error:', searchError);
+        toast({
+          title: "Search Error",
+          description: "Error searching for rider: " + searchError.message,
+          variant: "destructive",
+        });
+        setLoading(false);
+        return;
+      }
 
       if (!riderProfile) {
         toast({
