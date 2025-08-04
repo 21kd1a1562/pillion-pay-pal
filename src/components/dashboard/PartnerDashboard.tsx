@@ -45,6 +45,42 @@ const PartnerDashboard = () => {
   useEffect(() => {
     if (user) {
       fetchDashboardData();
+      
+      // Listen for real-time requests
+      const channel = supabase
+        .channel('requests-changes')
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'requests',
+            filter: `partner_id=eq.${user.id}`
+          },
+          (payload) => {
+            // Show browser notification if permission granted
+            if ('Notification' in window && Notification.permission === 'granted') {
+              new Notification('Attendance Request', {
+                body: 'Your rider has sent an attendance request',
+                icon: '/favicon.ico',
+                tag: 'attendance-request'
+              });
+            }
+            
+            // Refresh dashboard data
+            fetchDashboardData();
+            
+            toast({
+              title: "New Request!",
+              description: "Your rider is requesting you to mark attendance.",
+            });
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
     }
   }, [user]);
 
