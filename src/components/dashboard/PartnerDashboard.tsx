@@ -45,42 +45,6 @@ const PartnerDashboard = () => {
   useEffect(() => {
     if (user) {
       fetchDashboardData();
-      
-      // Listen for real-time requests
-      const channel = supabase
-        .channel('requests-changes')
-        .on(
-          'postgres_changes',
-          {
-            event: 'INSERT',
-            schema: 'public',
-            table: 'requests',
-            filter: `partner_id=eq.${user.id}`
-          },
-          (payload) => {
-            // Show browser notification if permission granted
-            if ('Notification' in window && Notification.permission === 'granted') {
-              new Notification('Attendance Request', {
-                body: 'Your rider has sent an attendance request',
-                icon: '/favicon.ico',
-                tag: 'attendance-request'
-              });
-            }
-            
-            // Refresh dashboard data
-            fetchDashboardData();
-            
-            toast({
-              title: "New Request!",
-              description: "Your rider is requesting you to mark attendance.",
-            });
-          }
-        )
-        .subscribe();
-
-      return () => {
-        supabase.removeChannel(channel);
-      };
     }
   }, [user]);
 
@@ -218,18 +182,6 @@ const PartnerDashboard = () => {
     setLoading(false);
   };
 
-  const requestNotificationPermission = async () => {
-    if ('Notification' in window && Notification.permission === 'default') {
-      const permission = await Notification.requestPermission();
-      if (permission === 'granted') {
-        toast({
-          title: "Notifications enabled",
-          description: "You'll now receive browser notifications for requests.",
-        });
-      }
-    }
-  };
-
   const pairWithRider = async () => {
     if (!user || !pairingCode.trim()) return;
 
@@ -355,17 +307,6 @@ const PartnerDashboard = () => {
                 <p className="text-sm text-muted-foreground">
                   Paired with: {stats.riderInfo?.email}
                 </p>
-                <div className="mt-3">
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={requestNotificationPermission}
-                    className="text-xs"
-                  >
-                    <Bell className="h-3 w-3 mr-1" />
-                    Enable Notifications
-                  </Button>
-                </div>
               </div>
             </CardContent>
           </Card>

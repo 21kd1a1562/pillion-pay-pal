@@ -26,7 +26,6 @@ interface DashboardStats {
   todayStatus: 'pending' | 'completed' | 'none';
   partnerInfo: any;
   pairingCode: string;
-  isPaired: boolean;
 }
 
 const RiderDashboard = () => {
@@ -38,8 +37,7 @@ const RiderDashboard = () => {
     daysThisMonth: 0,
     todayStatus: 'none',
     partnerInfo: null,
-    pairingCode: '',
-    isPaired: false
+    pairingCode: ''
   });
   const [loading, setLoading] = useState(false);
 
@@ -95,12 +93,12 @@ const RiderDashboard = () => {
       const todayAttendance = attendance?.find(record => record.date === today);
       const todayStatus = todayAttendance ? 'completed' : 'pending';
 
-      // Find partner who is paired with this rider
+      // Find partner
       const { data: partner } = await supabase
         .from('profiles')
         .select('*')
         .eq('role', 'partner')
-        .eq('paired_rider_id', user.id)
+        .limit(1)
         .maybeSingle();
 
       setStats({
@@ -109,8 +107,7 @@ const RiderDashboard = () => {
         daysThisMonth,
         todayStatus,
         partnerInfo: partner,
-        pairingCode: profile?.pairing_code || '',
-        isPaired: !!partner
+        pairingCode: profile?.pairing_code || ''
       });
 
     } catch (error) {
@@ -192,15 +189,6 @@ const RiderDashboard = () => {
 
       if (error) throw error;
 
-      // Send browser notification if permission granted
-      if ('Notification' in window && Notification.permission === 'granted') {
-        new Notification('Attendance Request', {
-          body: 'Your rider has sent an attendance request',
-          icon: '/favicon.ico',
-          tag: 'attendance-request'
-        });
-      }
-
       toast({
         title: "Request sent!",
         description: "Your partner has been notified to mark attendance.",
@@ -211,18 +199,6 @@ const RiderDashboard = () => {
         description: error.message,
         variant: "destructive",
       });
-    }
-  };
-
-  const requestNotificationPermission = async () => {
-    if ('Notification' in window && Notification.permission === 'default') {
-      const permission = await Notification.requestPermission();
-      if (permission === 'granted') {
-        toast({
-          title: "Notifications enabled",
-          description: "You'll now receive browser notifications for requests.",
-        });
-      }
     }
   };
 
@@ -290,72 +266,42 @@ const RiderDashboard = () => {
         </CardContent>
       </Card>
 
-      {/* Pairing Status Card */}
-      {!stats.isPaired ? (
-        <Card className="border-0 shadow-lg bg-gradient-to-r from-accent/10 to-primary/10">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <QrCode className="h-5 w-5" />
-              Your Pairing Code
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="text-center">
-              <p className="text-sm text-muted-foreground mb-2">
-                Share this code with your partner to pair your accounts
+      {/* Pairing Code Card */}
+      <Card className="border-0 shadow-lg bg-gradient-to-r from-accent/10 to-primary/10">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <QrCode className="h-5 w-5" />
+            Your Pairing Code
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="text-center">
+            <p className="text-sm text-muted-foreground mb-2">
+              Share this code with your partner to pair your accounts
+            </p>
+            <div className="bg-muted/50 rounded-lg p-4 border-2 border-dashed">
+              <p className="text-3xl font-bold tracking-wider text-primary">
+                {stats.pairingCode}
               </p>
-              <div className="bg-muted/50 rounded-lg p-4 border-2 border-dashed">
-                <p className="text-3xl font-bold tracking-wider text-primary">
-                  {stats.pairingCode}
-                </p>
-              </div>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="mt-2"
-                onClick={() => {
-                  navigator.clipboard.writeText(stats.pairingCode);
-                  toast({
-                    title: "Copied!",
-                    description: "Pairing code copied to clipboard",
-                  });
-                }}
-              >
-                <Copy className="h-4 w-4 mr-2" />
-                Copy Code
-              </Button>
             </div>
-          </CardContent>
-        </Card>
-      ) : (
-        <Card className="border-0 shadow-lg bg-gradient-to-r from-success/10 to-primary/10">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Users className="h-5 w-5" />
-              Paired Partner
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="text-center">
-              <p className="text-success font-medium">✓ Successfully paired!</p>
-              <p className="text-sm text-muted-foreground">
-                Paired with: {stats.partnerInfo?.email}
-              </p>
-              <div className="mt-3">
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={requestNotificationPermission}
-                  className="text-xs"
-                >
-                  <Bell className="h-3 w-3 mr-1" />
-                  Enable Notifications
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="mt-2"
+              onClick={() => {
+                navigator.clipboard.writeText(stats.pairingCode);
+                toast({
+                  title: "Copied!",
+                  description: "Pairing code copied to clipboard",
+                });
+              }}
+            >
+              <Copy className="h-4 w-4 mr-2" />
+              Copy Code
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -427,11 +373,7 @@ const RiderDashboard = () => {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {!stats.isPaired ? (
-              <div className="text-center p-4">
-                <p className="text-muted-foreground">Pair with a partner first to send requests</p>
-              </div>
-            ) : stats.todayStatus !== 'completed' ? (
+            {stats.todayStatus !== 'completed' && stats.partnerInfo ? (
               <div>
                 <p className="text-sm text-muted-foreground mb-2">
                   {stats.todayStatus === 'pending' ? 
@@ -443,13 +385,16 @@ const RiderDashboard = () => {
                   onClick={sendRequest}
                   className="w-full bg-gradient-to-r from-warning to-accent hover:from-warning/90 hover:to-accent/90"
                 >
-                  <Bell className="h-4 w-4 mr-2" />
-                  Send Notification
+                  Send Request
                 </Button>
+              </div>
+            ) : stats.todayStatus === 'completed' ? (
+              <div className="text-center p-4">
+                <p className="text-success font-medium">✓ Partner marked attendance today!</p>
               </div>
             ) : (
               <div className="text-center p-4">
-                <p className="text-success font-medium">✓ Partner marked attendance today!</p>
+                <p className="text-muted-foreground">No partner found</p>
               </div>
             )}
           </CardContent>
