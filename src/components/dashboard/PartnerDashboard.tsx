@@ -218,6 +218,18 @@ const PartnerDashboard = () => {
     setLoading(false);
   };
 
+  const requestNotificationPermission = async () => {
+    if ('Notification' in window && Notification.permission === 'default') {
+      const permission = await Notification.requestPermission();
+      if (permission === 'granted') {
+        toast({
+          title: "Notifications enabled",
+          description: "You'll now receive browser notifications for requests.",
+        });
+      }
+    }
+  };
+
   const pairWithRider = async () => {
     if (!user || !pairingCode.trim()) return;
 
@@ -343,6 +355,17 @@ const PartnerDashboard = () => {
                 <p className="text-sm text-muted-foreground">
                   Paired with: {stats.riderInfo?.email}
                 </p>
+                <div className="mt-3">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={requestNotificationPermission}
+                    className="text-xs"
+                  >
+                    <Bell className="h-3 w-3 mr-1" />
+                    Enable Notifications
+                  </Button>
+                </div>
               </div>
             </CardContent>
           </Card>
