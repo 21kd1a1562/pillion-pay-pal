@@ -118,6 +118,17 @@ const RiderDashboard = () => {
   const savePetrolCost = async () => {
     if (!user || !petrolCost) return;
 
+    // Input validation
+    const cost = parseFloat(petrolCost);
+    if (isNaN(cost) || cost < 0 || cost > 10000) {
+      toast({
+        title: "Invalid Amount",
+        description: "Please enter a valid amount between ₹0 and ₹10,000",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setLoading(true);
     try {
       // First check if settings already exist
@@ -241,6 +252,9 @@ const RiderDashboard = () => {
                 placeholder="Enter daily petrol cost"
                 value={petrolCost}
                 onChange={(e) => setPetrolCost(e.target.value)}
+                min="0"
+                max="10000"
+                step="0.01"
               />
             </div>
             <div className="flex items-end">

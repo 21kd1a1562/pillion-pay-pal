@@ -185,13 +185,24 @@ const PartnerDashboard = () => {
   const pairWithRider = async () => {
     if (!user || !pairingCode.trim()) return;
 
+    // Input validation for pairing code
+    const cleanCode = pairingCode.trim().toUpperCase();
+    if (!/^[A-Z0-9]{6}$/.test(cleanCode)) {
+      toast({
+        title: "Invalid Pairing Code",
+        description: "Pairing code must be exactly 6 alphanumeric characters",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setLoading(true);
     try {
       // Find rider by pairing code
       const { data: riderProfile, error: searchError } = await supabase
         .from('profiles')
         .select('*')
-        .eq('pairing_code', pairingCode.trim().toUpperCase())
+        .eq('pairing_code', cleanCode)
         .eq('role', 'rider')
         .maybeSingle();
 
@@ -262,8 +273,12 @@ const PartnerDashboard = () => {
                   id="pairing-code"
                   placeholder="Enter 6-digit code"
                   value={pairingCode}
-                  onChange={(e) => setPairingCode(e.target.value.toUpperCase())}
+                  onChange={(e) => {
+                    const value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+                    setPairingCode(value);
+                  }}
                   maxLength={6}
+                  pattern="[A-Z0-9]{6}"
                 />
               </div>
               <Button 
